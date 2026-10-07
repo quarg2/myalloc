@@ -1,8 +1,23 @@
-#include <stdlib.h>
+#ifndef MYALLOC_H
+#define MYALLOC_H
 
-// Allocates size_t bytes of memory and returns a pointer to the allocated memory.
-// Returns NULL on error
+#include <stddef.h>
+
+/*
+ * Allocate 'size' bytes of memory.
+ *
+ * Returns:
+ *     Pointer to allocated memory on success
+ *     NULL on failure
+ */
 void *myalloc(size_t size);
 
-// Frees the given pointer previously allocated by myalloc.
+
+/*
+ * Free memory previously allocated by myalloc().
+ *
+ * mfree(NULL) is safe and does nothing.
+ */
 void mfree(void *ptr);
+
+#endif

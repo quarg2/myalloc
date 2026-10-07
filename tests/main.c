@@ -7,6 +7,8 @@
 static int tests_passed = 0;
 static int tests_failed = 0;
 
+
+/* Print the result of a test */
 static void print_result(const char *name, int passed)
 {
     if (passed)
@@ -21,73 +23,101 @@ static void print_result(const char *name, int passed)
     }
 }
 
+
+/* Test 1: Basic allocation */
 static void test_basic_allocation(void)
 {
     void *ptr = myalloc(100);
 
-    print_result("Basic allocation", ptr != NULL);
+    int passed = (ptr != NULL);
+
+    print_result("Basic allocation", passed);
 
     if (ptr != NULL)
-        free(ptr);
+        mfree(ptr);
 }
 
+
+/* Test 2: Multiple allocations */
 static void test_multiple_allocations(void)
 {
     void *a = myalloc(64);
     void *b = myalloc(128);
     void *c = myalloc(256);
 
-    int passed = (a != NULL && b != NULL && c != NULL);
+    int passed =
+        (a != NULL &&
+         b != NULL &&
+         c != NULL);
 
     print_result("Multiple allocations", passed);
 
     if (a != NULL)
-        free(a);
+        mfree(a);
+
     if (b != NULL)
-        free(b);
+        mfree(b);
+
     if (c != NULL)
-        free(c);
+        mfree(c);
 }
 
+
+/* Test 3: Different allocation sizes */
 static void test_different_sizes(void)
 {
     void *small = myalloc(1);
     void *medium = myalloc(512);
     void *large = myalloc(4096);
 
-    int passed = (small != NULL && medium != NULL && large != NULL);
+    int passed =
+        (small != NULL &&
+         medium != NULL &&
+         large != NULL);
 
     print_result("Different allocation sizes", passed);
 
     if (small != NULL)
-        free(small);
+        mfree(small);
+
     if (medium != NULL)
-        free(medium);
+        mfree(medium);
+
     if (large != NULL)
-        free(large);
+        mfree(large);
 }
 
+
+/* Test 4: Write and read allocated memory */
 static void test_write_read(void)
 {
     char *ptr = (char *)myalloc(64);
+
     int passed = 0;
 
     if (ptr != NULL)
     {
         const char *message = "myalloc test";
+
         strcpy(ptr, message);
-        passed = (strcmp(ptr, message) == 0);
+
+        if (strcmp(ptr, message) == 0)
+            passed = 1;
     }
 
     print_result("Write and read allocated memory", passed);
 
     if (ptr != NULL)
-        free(ptr);
+        mfree(ptr);
 }
 
+
+/* Test 5: Memory pattern verification */
 static void test_memory_patterns(void)
 {
-    unsigned char *ptr = (unsigned char *)myalloc(256);
+    unsigned char *ptr =
+        (unsigned char *)myalloc(256);
+
     int passed = (ptr != NULL);
 
     if (ptr != NULL)
@@ -105,31 +135,42 @@ static void test_memory_patterns(void)
         }
     }
 
-    print_result("Memory write pattern verification", passed);
+    print_result(
+        "Memory write pattern verification",
+        passed
+    );
 
     if (ptr != NULL)
-        free(ptr);
+        mfree(ptr);
 }
 
+
+/* Test 6: Zero-size allocation */
 static void test_zero_size(void)
 {
     void *ptr = myalloc(0);
 
     /*
-     * The project does not define a special zero-size policy.
-     * We only verify that the allocator does not crash and that
-     * a returned pointer can be released.
+     * Our allocator intentionally returns NULL
+     * for zero-byte allocations.
      */
-    print_result("Zero-size allocation does not crash", 1);
+    int passed = (ptr == NULL);
+
+    print_result("Zero-size allocation", passed);
 
     if (ptr != NULL)
-        free(ptr);
+        mfree(ptr);
 }
 
+
+/* Test 7: Large allocation */
 static void test_large_allocation(void)
 {
     const size_t size = 1024 * 1024;
-    unsigned char *ptr = (unsigned char *)myalloc(size);
+
+    unsigned char *ptr =
+        (unsigned char *)myalloc(size);
+
     int passed = (ptr != NULL);
 
     if (ptr != NULL)
@@ -137,20 +178,30 @@ static void test_large_allocation(void)
         ptr[0] = 0xAA;
         ptr[size - 1] = 0x55;
 
-        passed = (ptr[0] == 0xAA && ptr[size - 1] == 0x55);
+        passed =
+            (ptr[0] == 0xAA &&
+             ptr[size - 1] == 0x55);
     }
 
     print_result("Large allocation (1 MB)", passed);
 
     if (ptr != NULL)
-        free(ptr);
+        mfree(ptr);
 }
 
+
+/* Test 8: Repeated allocations */
 static void test_repeated_allocations(void)
 {
-    enum { BLOCK_COUNT = 100 };
+    enum
+    {
+        BLOCK_COUNT = 100
+    };
+
     void *blocks[BLOCK_COUNT];
+
     int passed = 1;
+    int allocated = 0;
 
     for (int i = 0; i < BLOCK_COUNT; i++)
     {
@@ -159,90 +210,127 @@ static void test_repeated_allocations(void)
         if (blocks[i] == NULL)
         {
             passed = 0;
-
-            for (int j = 0; j < i; j++)
-                if (blocks[j] != NULL)
-                    free(blocks[j]);
-
             break;
         }
+
+        allocated++;
     }
 
-    if (passed)
-    {
-        for (int i = 0; i < BLOCK_COUNT; i++)
-            free(blocks[i]);
-    }
+    for (int i = 0; i < allocated; i++)
+        mfree(blocks[i]);
 
-    print_result("100 repeated allocations", passed);
+    print_result(
+        "100 repeated allocations",
+        passed
+    );
 }
 
+
+/* Test 9: Allocation after free */
 static void test_free_and_reuse(void)
 {
     void *first = myalloc(128);
+
     int passed = (first != NULL);
 
     if (first != NULL)
     {
-        free(first);
+        mfree(first);
 
         void *second = myalloc(128);
+
         passed = (second != NULL);
 
         if (second != NULL)
-            free(second);
+            mfree(second);
     }
 
-    print_result("Allocation after free", passed);
+    print_result(
+        "Allocation after free",
+        passed
+    );
 }
 
+
+/* Test 10: Fragmentation and reuse */
 static void test_fragmentation(void)
 {
     void *a = myalloc(128);
     void *b = myalloc(256);
     void *c = myalloc(128);
-    int passed = (a != NULL && b != NULL && c != NULL);
 
-    if (a != NULL && b != NULL && c != NULL)
+    int passed =
+        (a != NULL &&
+         b != NULL &&
+         c != NULL);
+
+    if (a != NULL &&
+        b != NULL &&
+        c != NULL)
     {
-        free(b);
+        /*
+         * Free the middle block.
+         */
+        mfree(b);
 
+        /*
+         * Allocate a smaller block.
+         * This tests reuse of freed memory.
+         */
         void *d = myalloc(128);
 
         if (d == NULL)
             passed = 0;
 
         if (d != NULL)
-            free(d);
+            mfree(d);
     }
 
     if (a != NULL)
-        free(a);
-    if (c != NULL)
-        free(c);
+        mfree(a);
 
-    print_result("Fragmentation and reuse pattern", passed);
+    if (c != NULL)
+        mfree(c);
+
+    print_result(
+        "Fragmentation and reuse pattern",
+        passed
+    );
 }
 
+
+/* Test 11: mfree(NULL) safety */
 static void test_free_null(void)
 {
     /*
-     * free(NULL) should be safe according to the implementation.
+     * mfree(NULL) should safely do nothing.
      */
-    free(NULL);
-    print_result("free(NULL) safety", 1);
+    mfree(NULL);
+
+    print_result(
+        "mfree(NULL) safety",
+        1
+    );
 }
 
+
+/* Test 12: Stress test */
 static void test_stress(void)
 {
-    enum { BLOCK_COUNT = 500 };
+    enum
+    {
+        BLOCK_COUNT = 500
+    };
+
     void *blocks[BLOCK_COUNT];
+
     int passed = 1;
     int allocated = 0;
 
     for (int i = 0; i < BLOCK_COUNT; i++)
     {
-        size_t size = (size_t)((i % 10) + 1) * 32;
+        size_t size =
+            (size_t)((i % 10) + 1) * 32;
 
         blocks[i] = myalloc(size);
 
@@ -253,15 +341,31 @@ static void test_stress(void)
         }
 
         allocated++;
-        memset(blocks[i], 0xAA, size);
+
+        /*
+         * Write to the allocated memory.
+         */
+        memset(
+            blocks[i],
+            0xAA,
+            size
+        );
     }
 
+    /*
+     * Free all successfully allocated blocks.
+     */
     for (int i = 0; i < allocated; i++)
-        free(blocks[i]);
+        mfree(blocks[i]);
 
-    print_result("Stress test (up to 500 allocations)", passed);
+    print_result(
+        "Stress test (up to 500 allocations)",
+        passed
+    );
 }
 
+
+/* Main test runner */
 int main(void)
 {
     printf("\n");
@@ -286,15 +390,25 @@ int main(void)
     printf("============================================\n");
     printf("              TEST SUMMARY\n");
     printf("============================================\n");
+
     printf("Tests passed : %d\n", tests_passed);
     printf("Tests failed : %d\n", tests_failed);
-    printf("Total tests  : %d\n", tests_passed + tests_failed);
+
+    printf(
+        "Total tests  : %d\n",
+        tests_passed + tests_failed
+    );
+
     printf("--------------------------------------------\n");
 
     if (tests_failed == 0)
+    {
         printf("FINAL RESULT: ALL TESTS PASSED\n");
+    }
     else
+    {
         printf("FINAL RESULT: TESTS FAILED\n");
+    }
 
     printf("============================================\n\n");
 
